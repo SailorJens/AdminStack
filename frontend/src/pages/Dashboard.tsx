@@ -1,23 +1,48 @@
-import React, { useEffect, useState } from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Typography } from "@mui/material";
+// src/pages/Dashboard.tsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
+  Typography,
+  Button,
+  Box,
+} from "@mui/material";
+import { getToken, removeToken } from "../auth/auth";
 
 interface User {
   id: number;
   email: string;
 }
 
-interface DashboardProps {
-  token: string;
-}
+export default function Dashboard() {
+  const navigate = useNavigate();
 
-const Dashboard: React.FC<DashboardProps> = ({ token }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const logout = () => {
+    removeToken();
+    navigate("/login", { replace: true });
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     setError("");
+
+    const token = getToken();
+    if (!token) {
+      // No token -> go login
+      navigate("/login", { replace: true });
+      return;
+    }
 
     try {
       const response = await fetch("http://127.0.0.1:7777/users", {
@@ -26,9 +51,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
         },
       });
 
+      if (response.status === 401) {
+        // Token invalid/expired -> clear and go login
+        removeToken();
+        navigate("/login", { replace: true });
+        return;
+      }
+
       if (!response.ok) {
-        const data = await response.json();
-        setError(data.detail || "Failed to fetch users");
+        const data = await response.json().catch(() => ({} as any));
+        setError((data as any).detail || "Failed to fetch users");
         setLoading(false);
         return;
       }
@@ -45,15 +77,46 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return <CircularProgress style={{ marginTop: "2rem" }} />;
 
-  if (error) return <Typography color="error" style={{ marginTop: "2rem" }}>{error}</Typography>;
+  if (error)
+    return (
+      <Box sx={{ mt: 4 }}>
+        <Typography color="error">{error}</Typography>
+        <Button sx={{ mt: 2 }} variant="outlined" onClick={fetchUsers}>
+          Retry
+        </Button>
+        <Button sx={{ mt: 2, ml: 2 }} variant="contained" onClick={logout}>
+          Logout
+        </Button>
+      </Box>
+    );
 
   return (
     <TableContainer component={Paper} style={{ marginTop: "2rem" }}>
-      <Typography variant="h5" style={{ padding: "1rem" }}>User Dashboard</Typography>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 2,
+          py: 1.5,
+        }}
+      >
+        <Typography variant="h5">User Dashboard</Typography>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button variant="outlined" onClick={fetchUsers}>
+            Refresh
+          </Button>
+          <Button variant="contained" onClick={logout}>
+            Logout
+          </Button>
+        </Box>
+      </Box>
+
       <Table>
         <TableHead>
           <TableRow>
@@ -72,6 +135,4 @@ const Dashboard: React.FC<DashboardProps> = ({ token }) => {
       </Table>
     </TableContainer>
   );
-};
-
-export default Dashboard;
+}

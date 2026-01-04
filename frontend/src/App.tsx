@@ -1,19 +1,32 @@
-import React, { useState } from "react";
+// src/App.tsx
+import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { getToken } from "./auth/auth";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 
-const App: React.FC = () => {
-  const [token, setToken] = useState<string | null>(null);
+type UserState = {
+  token: string;
+} | null;
+
+export default function App() {
+  const [user, setUser] = useState<UserState>(null);
+
+  useEffect(() => {
+    const token = getToken();
+    if (token) {
+      setUser({ token });
+    }
+  }, []);
 
   return (
-    <div>
-      {token ? (
-        <Dashboard token={token} />
-      ) : (
-        <LoginPage onLoginSuccess={setToken} />
-      )}
-    </div>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/dashboard"
+        element={user ? <Dashboard /> : <Navigate to="/login" replace />}
+      />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
-};
-
-export default App;
+}
