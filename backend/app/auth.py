@@ -46,13 +46,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Dep
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if not username:
+        email: str = payload.get("sub")
+        if not email:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    user = session.exec(select(User).where(User.username == username)).first()
+    user = session.exec(select(User).where(User.email == email)).first()
     if not user:
         raise credentials_exception
     return user

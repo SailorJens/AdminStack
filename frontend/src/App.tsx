@@ -1,18 +1,19 @@
-// frontend/src/App.tsx
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 
-function App() {
+const App: React.FC = () => {
+  const [token, setToken] = useState<string | null>(null);
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-    </Router>
+    <div>
+      {token ? (
+        <Dashboard token={token} />
+      ) : (
+        <LoginPage onLoginSuccess={setToken} />
+      )}
+    </div>
   );
-}
+};
 
 export default App;
-

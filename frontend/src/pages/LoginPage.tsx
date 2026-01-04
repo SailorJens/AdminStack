@@ -1,89 +1,78 @@
-// src/pages/LoginPage.tsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  Alert,
-  Paper,
-} from "@mui/material";
 
-export default function LoginPage() {
-  const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+interface LoginPageProps {
+  onLoginSuccess: (token: string) => void; // callback to store token in parent state
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setError("");
 
     try {
       const response = await fetch("http://127.0.0.1:7777/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || "Login failed");
+        setError(data.detail || "Login failed");
+        return;
       }
 
       const data = await response.json();
-      localStorage.setItem("token", data.access_token);
-      navigate("/dashboard"); // redirect to dashboard
-    } catch (err: any) {
-      setError(err.message);
+      const token = data.access_token;
+      onLoginSuccess(token); // store token in parent component
+    } catch (err) {
+      setError("Network error");
+      console.error(err);
     }
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        bgcolor: "#f5f5f5",
-      }}
-    >
-      <Paper sx={{ p: 4, width: 400 }}>
-        <Typography variant="h5" mb={2}>
-          Login
-        </Typography>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <TextField
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            fullWidth
+    <div className="max-w-md mx-auto mt-16 p-6 border rounded shadow">
+      <h1 className="text-2xl font-bold mb-4">Login</h1>
+      {error && <p className="text-red-500 mb-2">{error}</p>}
+      <form onSubmit={handleSubmit}>
+        <div className="mb-4">
+          <label className="block mb-1 font-semibold">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-2 border rounded"
             required
-            sx={{ mb: 2 }}
           />
-          <TextField
-            label="Password"
+        </div>
+
+        <div className="mb-4">
+          <label className="block mb-1 font-semibold">Password</label>
+          <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            fullWidth
+            className="w-full p-2 border rounded"
             required
-            sx={{ mb: 3 }}
           />
-          <Button variant="contained" type="submit" fullWidth>
-            Login
-          </Button>
-        </form>
-      </Paper>
-    </Box>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        >
+          Login
+        </button>
+      </form>
+    </div>
   );
-}
+};
+
+export default LoginPage;
